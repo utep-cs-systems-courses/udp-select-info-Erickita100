@@ -30,7 +30,10 @@ except:
 print("serverAddr = %s" % repr(serverAddr))
 
 clientSocket = socket(AF_INET, SOCK_DGRAM)
-print("Input lowercase msg")
+if (serverAddr[1]== 50001):
+	print("Input uppercase msg")
+else:
+	print("Input lowercase msg")
 message = sys.stdin.readline()[:-1]     # delete final \n
 clientSocket.sendto(message.encode(), serverAddr)
 modifiedMessage, serverAddrPort = clientSocket.recvfrom(2048)
