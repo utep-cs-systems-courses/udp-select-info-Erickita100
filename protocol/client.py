@@ -72,7 +72,8 @@ with open(filename, "rb") as f:
         # we use sendall to assure transimission in 
         # busy networks
         start = time()
-        clientSocket.sendto(bytes_read,serverAddr)
+        payload = str(counter) +seperator +bytes_read
+        clientSocket.sendto(payload,serverAddr)
         
         encodedAckText, serverAddrPrt = clientSocket.recvfrom(BUFFER_SIZE)
         ackText = encodedAckText.decode('utf-8')

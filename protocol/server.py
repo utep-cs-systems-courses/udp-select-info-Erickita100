@@ -44,15 +44,13 @@ def receiveHeader(sock):
 def receiveFile(sock):
    # start receiving the file from the socket
    # and writing to the file stream
-   global counter
-   global filename
-   counter = counter + 1
+  
    with open(filename, "ab") as f:
        
        ACK_TEXT = 'packet_received:'
         # read 1024 bytes from the socket (receive)
        bytes_read, clientAddrPort = sock.recvfrom(BUFFER_SIZE)
-           
+       payloadNum, bytes_read = bytes_read.split(seperator)
        if not bytes_read:    
             # nothing is received
             # file transmitting is done
@@ -62,12 +60,11 @@ def receiveFile(sock):
        f.close()
            # now time to send the acknowledgement for each packet
            # encode the acknowledgement text
-       encodedAckText = str(ACK_TEXT+ str(counter))
+       encodedAckText = str(ACK_TEXT+ str(payloadNum))
            # send the encoded acknowledgement text
        sock.sendto(encodedAckText,clientAddrPort)
-       print("send ack to packet:", counter)
-       #counter = counter+1
-        
+       print("send ack to packet:", payloadNum)
+       
 
 
 upperServerSocket = socket(AF_INET, SOCK_DGRAM)
