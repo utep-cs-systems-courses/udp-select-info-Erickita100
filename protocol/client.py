@@ -8,7 +8,7 @@ BUFFER_SIZE = 20 # send 4096 bytes each time step
 ACK_TEXT = 'packet_received:'
  # default params
 serverAddr = ('localhost', 50000)       
-
+attempts = 0
                          
 # the name of file we want to send, make sure it exists
 filename = "Data.txt"
@@ -43,7 +43,7 @@ header =  str(filesize) + seperator + filename + seperator + str(numOfPackets)
 
 
 clientSocket = socket(AF_INET, SOCK_DGRAM)
-
+clientSocket.settimeout(0.5)
 clientSocket.sendto(header.encode(), serverAddr)
 #modifiedMessage, serverAddrPort = clientSocket.recvfrom(2048)
 #print('Modified message from %s is "%s"' % (repr(serverAddrPort), modifiedMessage.decode()))
@@ -60,6 +60,7 @@ else:
 # start sending the file
 with open(filename, "rb") as f:
     counter = 1
+    global attempts
     attempts = 1
     RTT = 0
     while attempts<3:
@@ -101,8 +102,8 @@ with open(filename, "rb") as f:
                 attempts= attempts + 1
         counter = counter+1
    
-     
-print("File Transfer Complete.")   
+if (attempts<3):     
+   print("File Transfer Complete.")   
         
 # close the socket
 clientSocket.close()   
