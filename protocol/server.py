@@ -31,6 +31,7 @@ def receiveHeader(sock):
    # now time to send the acknowledgement
    # encode the acknowledgement text
    encodedAckText = str(ACK_TEXT+str(counter))
+   print("header ====" ,encodedAckText)
    # send the encoded acknowledgement text
    sock.sendto(encodedAckText.encode(),clientAddrPort)
    print("send ack to header packet:", counter)
