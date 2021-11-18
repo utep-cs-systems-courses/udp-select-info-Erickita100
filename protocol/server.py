@@ -7,18 +7,22 @@ import time
 upperServerAddr = ("", 50000)   # any addr, port 50,000
 
 # receive 4096 bytes each time
-BUFFER_SIZE = 20
+BUFFER_SIZE = 256
 seperator = ";"
 ACK_TEXT = 'packet_received:'
 filename = " " 
 clientAddrPort = " "
 counter = 0
+WINDOW_SIZE = 3
+win = []
+numOfPackets = 0
 
 def receiveHeader(sock):
    header,clientAddrPort = sock.recvfrom(BUFFER_SIZE)
    header = header.decode()
    global filename
    global counter
+   global  numOfPackets
    filesize, filename, numOfPackets = header.split(seperator)
    # remove absolute path if there is
    filename = os.path.basename(filename)
@@ -31,7 +35,6 @@ def receiveHeader(sock):
    # now time to send the acknowledgement
    # encode the acknowledgement text
    encodedAckText = str(ACK_TEXT+str(counter))
-   print("header ====" ,encodedAckText)
    # send the encoded acknowledgement text
    sock.sendto(encodedAckText.encode(),clientAddrPort)
    print("send ack to header packet:", counter)
@@ -41,14 +44,17 @@ def receiveHeader(sock):
         time.sleep(1)
         reading = receiveFile(sock)'''
    readSockFunc[upperServerSocket] = receiveFile
+   #receiveFile(sock)
 
 def receiveFile(sock):
+   global win
+   global WINDOW_SIZE
+   
    # start receiving the file from the socket
    # and writing to the file stream
-  
    with open(filename, "ab") as f:
        
-       ACK_TEXT = 'packet_received:'
+       #ACK_TEXT = 'packet_received:'
         # read 1024 bytes from the socket (receive)
        bytes_read, clientAddrPort = sock.recvfrom(BUFFER_SIZE)
        payloadNum, bytes_read = bytes_read.split(seperator)
@@ -59,12 +65,27 @@ def receiveFile(sock):
             # write to the file the bytes we just received
        f.write(str(bytes_read))
        f.close()
+       win.append(int(payloadNum))
+       if len(win) == WINDOW_SIZE or numOfPackets in win :
+            sendAcks(sock,clientAddrPort,win)
+            win = []
            # now time to send the acknowledgement for each packet
            # encode the acknowledgement text
+       '''
        encodedAckText = str(ACK_TEXT+ str(payloadNum))
            # send the encoded acknowledgement text
        sock.sendto(encodedAckText,clientAddrPort)
-       print("send ack to packet:", payloadNum)
+       print("send ack to packet:", payloadNum)'''
+       
+def sendAcks(sock, clientAddrPort,win):
+	global WINDOW_SIZE
+	ACK_TEXT = 'packet_received:'
+	for i in win:
+         encodedAckText = str(ACK_TEXT+ str(i))
+         # send the encoded acknowledgement text
+         sock.sendto(encodedAckText,clientAddrPort)
+         print("send ack to packet:",encodedAckText )
+
        
 
 
