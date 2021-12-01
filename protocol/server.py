@@ -4,7 +4,7 @@ from select import select
 import os
 import time
 
-upperServerAddr = ("", 50000)   # any addr, port 50,000
+upperServerAddr = ("", 50001)   # any addr, port 50,000
 
 # receive 4096 bytes each time
 BUFFER_SIZE = 256

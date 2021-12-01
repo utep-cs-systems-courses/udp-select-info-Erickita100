@@ -14,6 +14,7 @@ serverAddr = ('localhost', 50000)
 filename = "Data.txt"
 counter = 1
 WINDOW_SIZE = 3
+numOfPackets = 0
 
 def usage():
      print("usage: %s [--serverAddr host:port]"  % sys.argv[0])
@@ -37,11 +38,13 @@ def sendHeader():
     global BUFFER_SIZE
 	# the name of file we want to send, make sure it exists
     global filename
+    global numOfPackets
     # get the file size
     filesize = os.path.getsize(filename)
  
     #get number of packets, bytes each
-    numOfPackets = int(filesize/BUFFER_SIZE)
+    numOfPackets = int(filesize/BUFFER_SIZE)+1
+    print(numOfPackets)
     header =  str(filesize) + seperator + filename + seperator + str(numOfPackets)
     clientSocket.sendto(header.encode(), serverAddr)
        
@@ -54,6 +57,7 @@ def sendFile(sock):
     RTTTimes = {}
     file = open(filename, "rb")
     byte = True
+    complete = False
     while byte:
        #global counter
        attempts = 1
@@ -66,7 +70,7 @@ def sendFile(sock):
            bytes_read = file.read(BUFFER_SIZE)
            if not bytes_read:
             # file transmitting is done
-               continue
+               break
            #send packet and record time
            win[counter]= bytes_read
            start = time()
@@ -76,11 +80,10 @@ def sendFile(sock):
            #check for ack received
            #received = True
            counter = counter +1
-       for key in win.keys():
+       for key in sorted(win.keys()):
             #receive acks for sliding wind
            encodedAckText, serverAddrPrt = clientSocket.recvfrom(BUFFER_SIZE)
            ackText = encodedAckText.decode('utf-8')
-     
            
                # log if acknowledgment was successful
            if ackText == (ACK_TEXT+str(key)):
@@ -88,8 +91,12 @@ def sendFile(sock):
                  win.pop(key)
                  RTT = (time() - RTTTimes[key]) *1000
                  print('RTT= '+str(RTT))
-                 
+                 if(key == numOfPackets):
+                 	complete = True
+                 	print("File Transfer Complete.")
+                 	break
            
+       
            '''
            else:
                  #resend packet
@@ -102,9 +109,7 @@ def sendFile(sock):
                    clientSocket.sendto(bytes_read,serverAddr)
                    attempts= attempts + 1
 '''
-           #counter = counter+1
-    if (attempts<3):     
-       print("File Transfer Complete.") 
+
     file.close()
 
 def recvAck(sock):
