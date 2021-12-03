@@ -11,5 +11,16 @@ Responses to messages sent to one port should be capitalized, requests
 to messages sent to the other port should be in lower case.
 
 
+##Sliding Windows
+cd slidingWindows
+run proxy -> server.py -> selectClient.py
+
+##Stop and Wait
+cd protocol
+run proxy -> server.py -> selectClient.py
+
+
+
+
 
 
