@@ -84,7 +84,6 @@ def sendFile(sock):
        attempts = 1
        RTT = 0
        packets = 0
-       timeout = 5 
        win = {}
        while len(win) < WINDOW_SIZE and attempts<3:
            # read the bytes from the file
@@ -95,6 +94,7 @@ def sendFile(sock):
            #send packet and record time
            win[counter]= bytes_read
            counter = counter +1
+       print("Sending new Window")
        for key in sorted(win.keys()):
            start = time()
            RTTTimes[key]=start
@@ -122,7 +122,7 @@ def sendFile(sock):
                  	
               except socket.timeout:
                  #resend packets
-                 print('error: server has not sent back packet:' + str(key))
+                 #print('error: server has not sent back packet:' + str(key))
                  if (attempts>3):
              	   print('Number of attempts succeeded, end connection, goodbye')
              	   sys.exit(1)
@@ -151,7 +151,7 @@ def recvAck(sock):
 print("Connecting to serverAddr = %s" % repr(serverAddr))
 
 clientSocket = socket.socket(AF_INET, SOCK_DGRAM)
-clientSocket.settimeout(2)
+clientSocket.settimeout(1)
 #clientSocket.setblocking(False)
 
  # map socket to function to call when socket is....
@@ -159,7 +159,7 @@ readSockFunc = {}               # ready for reading
 writeSockFunc = {}              # ready for writing
 errorSockFunc = {}              # broken
 
-timeout = 2                     # select delay before giving up, in seconds
+#timeout = 2                     # select delay before giving up, in seconds
 
  # function to call when upperServerSocket is ready for reading
 readSockFunc[clientSocket] = recvAck
