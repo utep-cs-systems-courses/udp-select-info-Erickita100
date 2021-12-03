@@ -45,7 +45,7 @@ pDelay = 0.0
 delayMin = 1.0                          # min delay 
 delayMax = 1.0                          # max delay 
 qCap = 4                                # queue capacity
-pDrop = 0.0                             # drop probability
+pDrop = 0.1                             # drop probability
 pDup = 0.0                              # duplicate probability
 verbose = 1                             # verbose mode
 

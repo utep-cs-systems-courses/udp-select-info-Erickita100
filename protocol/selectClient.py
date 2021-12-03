@@ -3,7 +3,7 @@ import sys, re
 import os     
 from time import time
 from select import select
-
+import socket
 
 
 seperator = ";"
@@ -13,7 +13,6 @@ ACK_TEXT = 'packet_received:'
 serverAddr = ('localhost', 50000)       
 filename = "Data.txt"
 counter = 1
-WINDOW_SIZE = 3
 numOfPackets = 0
 
 def usage():
@@ -44,75 +43,88 @@ def sendHeader():
  
     #get number of packets, bytes each
     numOfPackets = int(filesize/BUFFER_SIZE)+1
-    print(numOfPackets)
-    header =  str(filesize) + seperator + filename + seperator + str(numOfPackets)
+    
+    header =  str(filesize) + seperator + filename
     clientSocket.sendto(header.encode(), serverAddr)
+    received = False
+    attempts = 1
+    while not received:
+         try:
+            encodedAckText, serverAddrPrt = clientSocket.recvfrom(BUFFER_SIZE)
+            ackText = encodedAckText.decode('utf-8')
+            # log if acknowledgment was successful
+            if ackText == (ACK_TEXT+str(0)):
+              print('server acknowledged reception of header:'+str(0))
+              received = True
+              sendFile(clientSocket)
+           
+         except socket.timeout:
+             print('error: server has not sent back ' + ackText)
+             if (attempts <3):
+                print('resending header')
+                clientSocket.sendto(header.encode(),serverAddr)
+                attempts = attempts+1
+             else:
+                print("server didnt respond, goodbye")
+                sys.exit()
        
 def sendFile(sock):
         # start sending the file
     global filename
-    global WINDOW_SIZE
     print("sending file...")
     counter = 1
-    RTTTimes = {}
+    RTTTime = 0
     file = open(filename, "rb")
-    byte = True
     complete = False
-    while byte:
+    while True:
        #global counter
        attempts = 1
        RTT = 0
-       packets = 0
-       timeout = 5 
-       win = {}
-       while len(win) < WINDOW_SIZE and attempts<3:
-           # read the bytes from the file
-           bytes_read = file.read(BUFFER_SIZE)
-           if not bytes_read:
+       # read the bytes from the file
+       bytes_read = file.read(BUFFER_SIZE)
+       if not bytes_read:
             # file transmitting is done
                break
            #send packet and record time
-           win[counter]= bytes_read
-           start = time()
-           RTTTimes[counter]=start
-           payload = str(counter) +seperator +bytes_read
-           clientSocket.sendto(payload,serverAddr)
+       start = time()
+       payload = str(counter) +seperator +bytes_read
+       clientSocket.sendto(payload,serverAddr)
            #check for ack received
-           #received = True
-           counter = counter +1
-       for key in sorted(win.keys()):
-            #receive acks for sliding wind
-           encodedAckText, serverAddrPrt = clientSocket.recvfrom(BUFFER_SIZE)
-           ackText = encodedAckText.decode('utf-8')
+       received = False
+       attempts =1
+       #counter = counter +1
+       while not received:
+          try:
+             #receive acks for sliding wind
+             encodedAckText, serverAddrPrt = clientSocket.recvfrom(BUFFER_SIZE)
+             ackText = encodedAckText.decode('utf-8')
            
                # log if acknowledgment was successful
-           if ackText == (ACK_TEXT+str(key)):
-                 print('server acknowledged reception of packet:'+str(key))
-                 win.pop(key)
-                 RTT = (time() - RTTTimes[key]) *1000
+             if ackText == (ACK_TEXT+str(counter)):
+                 print('server acknowledged reception of packet:'+str(counter))
+                 RTT = (time() - start) *1000
                  print('RTT= '+str(RTT))
-                 if(key == numOfPackets):
+                 received = True
+                 if(counter == numOfPackets):
                  	complete = True
                  	print("File Transfer Complete.")
-                 	break
-           
-       
-           '''
-           else:
-                 #resend packet
+                 	sys.exit(1)
+          except socket.timeout:
+                 #resend packets
                  print('error: server has not sent back packet:' + str(counter))
-                 if (attempts>=3):
+                 if (attempts>3):
              	   print('Number of attempts succeeded, end connection')
-             	   break
+             	   sys.exit(1)
                  else: 
                    print('Re-sending packet:' + str(counter))
-                   clientSocket.sendto(bytes_read,serverAddr)
+                   clientSocket.sendto(payload,serverAddr)
                    attempts= attempts + 1
-'''
 
+       counter = counter +1
     file.close()
 
 def recvAck(sock):
+          
            encodedAckText, serverAddrPrt = clientSocket.recvfrom(BUFFER_SIZE)
            ackText = encodedAckText.decode('utf-8')
            # log if acknowledgment was successful
@@ -126,7 +138,8 @@ def recvAck(sock):
 
 print("Connecting to serverAddr = %s" % repr(serverAddr))
 
-clientSocket = socket(AF_INET, SOCK_DGRAM)
+clientSocket = socket.socket(AF_INET, SOCK_DGRAM)
+clientSocket.settimeout(2)
 #clientSocket.setblocking(False)
 
  # map socket to function to call when socket is....
@@ -134,7 +147,7 @@ readSockFunc = {}               # ready for reading
 writeSockFunc = {}              # ready for writing
 errorSockFunc = {}              # broken
 
-timeout = 1                     # select delay before giving up, in seconds
+timeout = 2                     # select delay before giving up, in seconds
 
  # function to call when upperServerSocket is ready for reading
 readSockFunc[clientSocket] = recvAck
