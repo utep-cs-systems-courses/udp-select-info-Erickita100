@@ -41,6 +41,7 @@ def sendHeader():
 	  # the name of file we want to send, make sure it exists
       global filename
       global numOfPackets
+      ackText=""
       # get the file size
       filesize = os.path.getsize(filename)
  
@@ -60,9 +61,10 @@ def sendHeader():
               received = True
               sendFile(clientSocket)
            
-         except timeout:
-             print('error: server has not sent back ' + ackText)
+         except socket.timeout:
+             print('error: server has not sent back header' + ackText)
              if (attempts <3):
+                print("Resending header")
                 clientSocket.sendto(header.encode(),serverAddr)
                 attempts = attempts+1
              else:
@@ -77,14 +79,15 @@ def sendFile(sock):
     counter = 1
     RTTTimes = {}
     file = open(filename, "rb")
-    byte = True
+    attempts = 1
     complete = False
-    while byte:
+    win = {}
+    sent = []
+    while True:
        #global counter
-       attempts = 1
        RTT = 0
-       packets = 0
-       win = {}
+       attempts =1
+       #win = {}
        while len(win) < WINDOW_SIZE and attempts<3:
            # read the bytes from the file
            bytes_read = file.read(BUFFER_SIZE)
@@ -94,41 +97,46 @@ def sendFile(sock):
            #send packet and record time
            win[counter]= bytes_read
            counter = counter +1
-       print("Sending new Window")
+           
+           
+       #print("Window:",sorted(win.keys()))
        for key in sorted(win.keys()):
-           start = time()
-           RTTTimes[key]=start
-           payload = str(key) +seperator +bytes_read
-           clientSocket.sendto(payload,serverAddr)
-       for key in sorted(win.keys()):
+           if key not in sent:
+              RTTTimes[key]=time()
+              payload = str(key) +seperator +win[key]
+              print("sending packet: "+str(key))
+              clientSocket.sendto(payload,serverAddr)
+              sent.append(key)
+           #counter = counter +1
+       #for key in sorted(win.keys()):
             #receive acks for sliding window
-           received = False
-           attempts = 1
-           while not received:
+       print("Window:",sorted(win.keys()))
+       current = list(sorted(win.keys()))[0]
+       received = False
+      
+       while not received:
               try:
                  encodedAckText, serverAddrPrt = clientSocket.recvfrom(BUFFER_SIZE)
                  ackText = encodedAckText.decode('utf-8')
-           
                  # log if acknowledgment was successful
-                 if ackText == (ACK_TEXT+str(key)):
-                    print('server acknowledged reception of packet:'+str(key))
+                 if ackText == (ACK_TEXT+str(current)):
+                    print('server acknowledged reception of packet:'+str(current))
                     received = True
-                    win.pop(key)
-                    RTT = (time() - RTTTimes[key]) *1000
+                    win.pop(current)
+                    RTT = (time() - RTTTimes[current]) *1000
                     print('RTT= '+str(RTT))
-                    if(key == numOfPackets):
+                    if(current == numOfPackets):
                  	   print("File Transfer Complete.")
                  	   sys.exit(1)
                  	
               except socket.timeout:
                  #resend packets
-                 #print('error: server has not sent back packet:' + str(key))
                  if (attempts>3):
              	   print('Number of attempts succeeded, end connection, goodbye')
              	   sys.exit(1)
                  else: 
-                   print('Re-sending packet:' + str(key))
-                   payload = str(key)+seperator+win[key]
+                   print('Re-sending packet:' + str(current))
+                   payload = str(current)+seperator+win[current]
                    clientSocket.sendto(payload,serverAddr)
                    attempts= attempts + 1
 
@@ -151,7 +159,7 @@ def recvAck(sock):
 print("Connecting to serverAddr = %s" % repr(serverAddr))
 
 clientSocket = socket.socket(AF_INET, SOCK_DGRAM)
-clientSocket.settimeout(1)
+clientSocket.settimeout(0.5)
 #clientSocket.setblocking(False)
 
  # map socket to function to call when socket is....
@@ -159,7 +167,7 @@ readSockFunc = {}               # ready for reading
 writeSockFunc = {}              # ready for writing
 errorSockFunc = {}              # broken
 
-#timeout = 2                     # select delay before giving up, in seconds
+#timeout = 1                     # select delay before giving up, in seconds
 
  # function to call when upperServerSocket is ready for reading
 readSockFunc[clientSocket] = recvAck

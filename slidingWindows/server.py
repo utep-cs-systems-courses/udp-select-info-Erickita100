@@ -16,7 +16,7 @@ counter = 0
 WINDOW_SIZE = 3
 win = []
 numOfPackets = 0
-
+lastpacket = 1
 def receiveHeader(sock):
    header,clientAddrPort = sock.recvfrom(BUFFER_SIZE)
    header = header.decode()
@@ -31,51 +31,39 @@ def receiveHeader(sock):
    filename = filename+ "1."+format
    # convert to integer
    filesize = int(filesize)
-   #numOfPackets = int(numOfPackets)
    # now time to send the acknowledgement
    # encode the acknowledgement text
    encodedAckText = str(ACK_TEXT+str(counter))
    # send the encoded acknowledgement text
    sock.sendto(encodedAckText.encode(),clientAddrPort)
    print("send ack to header packet:", counter)
-   '''
-   reading = True
-   while reading:
-        time.sleep(1)
-        reading = receiveFile(sock)'''
    readSockFunc[upperServerSocket] = receiveFile
-   #receiveFile(sock)
+ 
 
 def receiveFile(sock):
    global win
    global WINDOW_SIZE
-   
+   global lastpacket
    # start receiving the file from the socket
    # and writing to the file stream
    with open(filename, "ab") as f:
        
-       #ACK_TEXT = 'packet_received:'
         # read 1024 bytes from the socket (receive)
        bytes_read, clientAddrPort = sock.recvfrom(BUFFER_SIZE)
        payloadNum, bytes_read = bytes_read.split(seperator)
        if not bytes_read:    
             # nothing is received
-            # file transmitting is done
            return False
             # write to the file the bytes we just received
-       f.write(str(bytes_read))
-       f.close()
+            
+       if int(lastpacket) == int(payloadNum):
+          f.write(str(bytes_read))
+          f.close()
+          lastpacket = lastpacket+1
        win.append(int(payloadNum))
        if len(win) == WINDOW_SIZE or numOfPackets in win :
             sendAcks(sock,clientAddrPort,win)
             win = []
-           # now time to send the acknowledgement for each packet
-           # encode the acknowledgement text
-       '''
-       encodedAckText = str(ACK_TEXT+ str(payloadNum))
-           # send the encoded acknowledgement text
-       sock.sendto(encodedAckText,clientAddrPort)
-       print("send ack to packet:", payloadNum)'''
        
 def sendAcks(sock, clientAddrPort,win):
 	global WINDOW_SIZE
@@ -98,7 +86,7 @@ readSockFunc = {}               # ready for reading
 writeSockFunc = {}              # ready for writing
 errorSockFunc = {}              # broken
 
-timeout = 5                     # select delay before giving up, in seconds
+timeout = 0.5                     # select delay before giving up, in seconds
 
  # function to call when upperServerSocket is ready for reading
 readSockFunc[upperServerSocket] = receiveHeader
