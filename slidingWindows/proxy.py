@@ -44,8 +44,8 @@ propLat = 1.0e-2                        # 10 ms
 pDelay = 0.0
 delayMin = 1.0                          # min delay 
 delayMax = 1.0                          # max delay 
-qCap = 4                                # queue capacity
-pDrop = 0.0                             # drop probability
+qCap = 10                                # queue capacity
+pDrop = 0.01                             # drop probability
 pDup = 0.0                              # duplicate probability
 verbose = 1                             # verbose mode
 

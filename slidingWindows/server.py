@@ -23,7 +23,7 @@ def receiveHeader(sock):
    global filename
    global counter
    global  numOfPackets
-   filesize, filename = header.split(seperator)
+   filesize, filename = header.split(seperator,1)
    # remove absolute path if there is
    filename = os.path.basename(filename)
    #adds a 1 to filename to distinguish file transfered
@@ -38,7 +38,6 @@ def receiveHeader(sock):
    sock.sendto(encodedAckText.encode(),clientAddrPort)
    print("send ack to header packet:", counter)
    readSockFunc[upperServerSocket] = receiveFile
- 
 
 def receiveFile(sock):
    global win
@@ -49,15 +48,15 @@ def receiveFile(sock):
    with open(filename, "ab") as f:
        
         # read 1024 bytes from the socket (receive)
-       bytes_read, clientAddrPort = sock.recvfrom(BUFFER_SIZE)
-       payloadNum, bytes_read = bytes_read.split(seperator)
+       message, clientAddrPort = sock.recvfrom(BUFFER_SIZE+5)
+       payloadNum, bytes_read = message.split(seperator,1)
        if not bytes_read:    
             # nothing is received
            return False
             # write to the file the bytes we just received
             
        if int(lastpacket) == int(payloadNum):
-          f.write(str(bytes_read))
+          f.write(bytes_read)
           f.close()
           lastpacket = lastpacket+1
        win.append(int(payloadNum))
@@ -86,7 +85,7 @@ readSockFunc = {}               # ready for reading
 writeSockFunc = {}              # ready for writing
 errorSockFunc = {}              # broken
 
-timeout = 0.5                     # select delay before giving up, in seconds
+timeout = 0.2                     # select delay before giving up, in seconds
 
  # function to call when upperServerSocket is ready for reading
 readSockFunc[upperServerSocket] = receiveHeader

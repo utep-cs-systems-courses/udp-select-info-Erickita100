@@ -159,7 +159,7 @@ def recvAck(sock):
 print("Connecting to serverAddr = %s" % repr(serverAddr))
 
 clientSocket = socket.socket(AF_INET, SOCK_DGRAM)
-clientSocket.settimeout(0.5)
+clientSocket.settimeout(0.2)
 #clientSocket.setblocking(False)
 
  # map socket to function to call when socket is....
