@@ -12,7 +12,7 @@ BUFFER_SIZE = 256 # send 256 bytes each time step
 ACK_TEXT = 'packet_received:'
  # default params
 serverAddr = ('localhost', 50000)       
-filename = "Data.txt"
+filename = "pic.png"
 counter = 1
 WINDOW_SIZE = 3
 numOfPackets = 0
@@ -136,8 +136,9 @@ def sendFile(sock):
              	   sys.exit(1)
                  else: 
                    print('Re-sending packet:' + str(current))
-                   payload = str(current)+seperator+win[current]
-                   clientSocket.sendto(payload,serverAddr)
+                   for key in sorted(win.keys()):
+                      payload = str(key)+seperator+win[key]
+                      clientSocket.sendto(payload,serverAddr)
                    attempts= attempts + 1
 
 
